@@ -1,13 +1,15 @@
 "use client";
 
-import {useState} from 'react'
+import {useEffect, useState} from 'react'
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 import Form from '@components/Form';
 
-const CreatePrompt = () => {
+const EditPrompt = () => {
     const {data: session} = useSession();
+    const searchParams = useSearchParams();
+    const promptId = searchParams.get("id");
 
     const router = useRouter();
     const [submitting, setSubmitting] = useState();
@@ -17,15 +19,34 @@ const CreatePrompt = () => {
         tag: "",
     });
 
-    const createPrompt = async (e) => {
+
+    useEffect(()=>{
+        const getPromptDetails = async () =>{
+            const response = await fetch(`/api/prompt/${promptId}`);
+            const data = await response.json()
+            
+
+            setPost({
+                prompt: data.prompt,
+                tag: data.tag
+            })
+        }
+
+        if(promptId) getPromptDetails();
+
+    }, [promptId])
+
+    const updatePrompt = async (e) => {
         e.preventDefault();
         setSubmitting(true);
+
+        if(!promptId) return alert("Prompt ID not found")
+
         try {
-            const response =  await fetch("/api/prompt/new", {
-                method: "POST",
+            const response =  await fetch(`/api/prompt/${promptId}`, {
+                method: "PATCH",
                 body: JSON.stringify({
                     prompt: post.prompt,
-                    userID: session?.user.id,
                     tag: post.tag
                 })
             });
@@ -39,16 +60,18 @@ const CreatePrompt = () => {
             setSubmitting(false)
         }
     }
+
+
     return (
         <>
         {session?.user ? 
             <div>
                 <Form 
-                    type="Create"
+                    type="Edit"
                     post={post}
                     setPost={setPost}
                     submitting={submitting}
-                    handleSubmit={createPrompt}
+                    handleSubmit={updatePrompt}
                 />
             </div>
                 
@@ -59,4 +82,4 @@ const CreatePrompt = () => {
     )
 }
 
-export default CreatePrompt
+export default EditPrompt
